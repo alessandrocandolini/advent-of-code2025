@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "advent-of-code2025:lib"
+
+    - path: "./app"
+      component: "advent-of-code2025:exe:aoc2025"
+
+    - path: "./test"
+      component: "advent-of-code2025:test:aoc2025-test"
+
+    - path: "./benchmarks"
+      component: "advent-of-code2025:bench:aoc2025-benchmarks"
