@@ -84,7 +84,7 @@ statsArgsParser =
 commandParser :: Parser Command
 commandParser =
   hsubparser
-    ( command "run" (info (Run <$> argsParser) (progDesc "run the solution to the puzzle"))
+    ( command "solve" (info (Run <$> argsParser) (progDesc "run the solution to the puzzle"))
         <> command "generate" (info (Generate <$> generateArgsParser) (progDesc "generate scaffolding from template for a given day"))
         <> command "stats" (info (GetStats <$> statsArgsParser) (progDesc "retrieve stats from the AOC website"))
     )
