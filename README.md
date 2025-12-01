@@ -35,7 +35,7 @@ stack exec aoc2025
 ```
 or passing arguments
 ```
-stack exec aoc2025 -- run -d <day> -f <filename>
+stack exec aoc2025 -- solve -d <day> -f <filename>
 ```
 To run the **benchmarks**
 ```
@@ -50,7 +50,7 @@ stack install
 ```
 and the executable can be run with `aoc2025` or passing arguments like
 ```
-aoc2025 run -d 1 -f inputs/day1
+aoc2025 solve -d 1 -f inputs/day1
 ```
 assuming `~/.local/bin` is in the `$PATH` variable.
 
@@ -68,18 +68,23 @@ Thanks to [optparse-applicative](https://hackage.haskell.org/package/optparse-ap
 
 ### Run solutions
 
-From file:
+From **file**:
 ```
-aoc2025 run -d 1 -f inputs/day1
+aoc2025 solve -d 1 -f inputs/day1
 ```
 
-From standard input:
+From **standard input**:
 ```
-aoc2025 run -d 1  --with-input < inputs/day1
+aoc2025 solve -d 1  --with-input < inputs/day1
 ```
 or
 ```
-cat input/day1 | aoc2025 run -d 1 --with-input
+cat input/day1 | aoc2025 solve -d 1 --with-input
+```
+
+From **pbcopy** (on macos)
+```
+aoc2025 solve -d 1 --with-input < <(pbpaste)
 ```
 
 ### Retrieve stats
