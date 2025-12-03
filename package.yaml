@@ -32,6 +32,7 @@ dependencies:
 - aeson
 - aeson-pretty
 - array
+- parser-combinators
 
 default-extensions:
 - OverloadedStrings
