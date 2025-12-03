@@ -1,31 +1,59 @@
 module Day2 where
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Text.Megaparsec (Parsec, ParseErrorBundle, sepBy, runParser)
-import Data.Void (Void)
-import Text.Megaparsec.Char.Lexer (decimal)
-import Text.Megaparsec.Char (char)
 
-data Answer = Answer Int deriving (Eq, Show)
+import qualified Data.Text as T
+import Data.Void (Void)
+import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepBy)
+import Text.Megaparsec.Char (char)
+import Text.Megaparsec.Char.Lexer (decimal)
+
+data Answer = Answer Int Int deriving (Eq, Show)
 
 program :: T.Text -> IO ()
 program = print . solve
 
 solve :: T.Text -> Either ParsingError Answer
-solve = fmap (Answer . solvePart1) . parse
+solve = fmap (Answer <$> solvePart1 <*> solvePart2) . parse
 
-data Range a = Range { from :: a , to :: a } deriving (Eq, Show)
+data Range a = Range {from :: a, to :: a} deriving (Eq, Show)
 
-range :: Enum a => Range a -> [a]
-range r = [from r .. to r]
+allElementsInRange :: (Enum a) => Range a -> [a]
+allElementsInRange r = [from r .. to r]
 
-isRepeatedTwice :: Int -> Bool
-isRepeatedTwice = areTheSame . splitInHalf . show where
-  splitInHalf as = splitAt (length as `div` 2) as
-  areTheSame (s1, s2) = s1 == s2
+isRepeatedTwice :: (Eq a) => [a] -> Bool
+isRepeatedTwice as = firstHalf ++ firstHalf == as
+ where
+  firstHalf = take ((length as) `div` 2) as
 
 solvePart1 :: [Range Int] -> Int
-solvePart1 = sum . filter isRepeatedTwice . concatMap range
+solvePart1 = sum . filter areDigitsRepeatedTwice . concatMap allElementsInRange
+ where
+  areDigitsRepeatedTwice = isRepeatedTwice . show
+
+prefixesOfLengths :: [Int] -> [a] -> [[a]]
+prefixesOfLengths sizes as = fmap (`take` as) sizes
+
+-- naive check
+hasPeriod :: (Eq a) => [a] -> [a] -> Bool
+hasPeriod original period = original == take (length original) (cycle period)
+
+candidatePeriodLengths :: Int -> [Int]
+candidatePeriodLengths n = [l | l <- [half, half - 1 .. 1], n `mod` l == 0]
+ where
+  half = n `div` 2
+
+candidatePeriods :: [a] -> [[a]]
+candidatePeriods as = prefixesOfLengths (candidatePeriodLengths (length as)) as
+
+periods :: (Eq a) => [a] -> [[a]]
+periods as = filter (hasPeriod as) (candidatePeriods as)
+
+isPeriodic :: (Eq a) => [a] -> Bool
+isPeriodic = not . null . periods
+
+solvePart2 :: [Range Int] -> Int
+solvePart2 = sum . filter isMadeByPeriodicDigits . concatMap allElementsInRange
+ where
+  isMadeByPeriodicDigits = isPeriodic . show
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void

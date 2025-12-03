@@ -2,13 +2,9 @@
 
 module Day2Spec where
 
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import Day2
 import NeatInterpolation (trimming)
 import Test.Hspec
-import Test.Hspec.QuickCheck
-import Test.QuickCheck
 
 input =
   [trimming|
@@ -35,7 +31,28 @@ spec = describe "Day 2" $ do
   it "can parse input" $
     parse input `shouldBe` Right ranges
   it "can generate all intermediate numbers" $
-    range (Range 998 1012) `shouldBe` [998, 999, 1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012]
+    allElementsInRange (Range 998 1012) `shouldBe` [998, 999, 1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012]
 
   it "can solve part1" $
     solvePart1 ranges `shouldBe` 1227775554
+
+  it "calculate prefix size candidates" $
+    candidatePeriodLengths 10 `shouldBe` [5, 2, 1]
+
+  it "check if a given list is made of a repeated index" $
+    periods [1, 2, 3, 1, 2, 3] `shouldBe` [[1, 2, 3]]
+
+  it "check if a given list is made of a repeated index (case where there are multiple prefixes and code should extract the maximal)" $
+    periods [1, 2, 1, 2, 1, 2, 1, 2] `shouldBe` [[1, 2, 1, 2], [1, 2]]
+
+  it "check if a given list is made of a repeated element" $
+    periods [9, 9, 9] `shouldBe` [[9]]
+
+  it "should not return any period when there are none" $
+    periods [1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3] `shouldBe` []
+
+  it "can solve part2" $
+    solvePart2 ranges `shouldBe` 4174379265
+
+  it "solve both parts from input" $
+    solve input `shouldBe` Right (Answer 1227775554 4174379265)
