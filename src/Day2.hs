@@ -34,7 +34,10 @@ prefixesOfLengths sizes as = fmap (`take` as) sizes
 
 -- naive check
 hasPeriod :: (Eq a) => [a] -> [a] -> Bool
-hasPeriod original period = original == take (length original) (cycle period)
+hasPeriod original period = hasLengthMultiple && coverInitialList
+ where
+  coverInitialList = original == take (length original) (cycle period)
+  hasLengthMultiple = (length original `mod` length period) == 0
 
 candidatePeriodLengths :: Int -> [Int]
 candidatePeriodLengths n = [l | l <- [half, half - 1 .. 1], n `mod` l == 0]
