@@ -33,6 +33,7 @@ dependencies:
 - aeson-pretty
 - array
 - parser-combinators
+- tardis
 
 default-extensions:
 - OverloadedStrings

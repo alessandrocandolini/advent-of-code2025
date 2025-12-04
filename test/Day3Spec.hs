@@ -6,7 +6,6 @@ import Data.List.NonEmpty
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Day3
-import Day3 (highestJoltageBatteryPair)
 import NeatInterpolation (trimming)
 import Test.Hspec
 import Test.Hspec.QuickCheck
@@ -46,29 +45,34 @@ spec = describe "Day 3" $ do
   it "parse input" $
     parse input `shouldBe` (Right powerBanks)
 
-  it "combinations of a single element is empty" $
-    combinations [1] `shouldBe` []
+  it "highest pair list of two elements" $
+    highestPair [1,2] `shouldBe` Just (1,2)
 
-  it "combinations of a list of two  elements is the pair of elements" $
-    combinations [1, 2] `shouldBe` [(1, 2)]
+  it "highest pair list of three elements" $
+    highestPair [1,2,3] `shouldBe` Just (2,3)
 
-  it "expand all combinations, in the order of the initial list" $
-    combinations [1, 2, 3] `shouldBe` [(1, 2), (1, 3), (2, 3)]
+  it "highest pair of a larger list" $
+    highestPair [2,9,5,1,2,7,3,7] `shouldBe` Just (9,7)
 
-  it "expand all combinations, in the order of the initial list" $
-    combinations [1, 2, 3, 4, 5] `shouldBe` [(1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
+  it "highest pair is empty for empty list" $
+    highestPair ([] :: [Int]) `shouldBe` Nothing
 
-  it "unique combinations with different elements" $
-    uniqueCombinations [1, 2, 3, 1, 1] `shouldBe` [(1, 2), (1, 3), (1, 1), (2, 3), (2, 1), (3, 1)]
+  it "highest pair is empty for a list of one element" $
+    highestPair [1] `shouldBe` Nothing
 
-  it "unique combinations in case of repeated digits" $
-    uniqueCombinations [1, 1, 1, 1] `shouldBe` [(1, 1)]
+  it "highest joltage of powerbank 1" $
+    highestJoltage powerBank1 `shouldBe` 98
 
-  prop "combinations and uniqueCombinations produce the same list highest pair" $
-    1 `shouldBe` 1
+  it "highest joltage of powerbank 2" $
+    highestJoltage powerBank2 `shouldBe` 89
 
-  it "highest joltage pair" $
-    highestJoltageBatteryPair powerBank1 `shouldBe` Just ((Battery Nine, Battery Eight))
+  it "highest joltage of powerbank 3" $
+    highestJoltage powerBank3 `shouldBe` 78
+
+  it "highest joltage of powerbank 4" $
+    highestJoltage powerBank4 `shouldBe` 92
+  it "solve part 1" $
+    solvePart1 powerBanks `shouldBe` 357
 
   it "highest joltage of powerbank 1" $
     highestJoltage powerBank1 `shouldBe` 98

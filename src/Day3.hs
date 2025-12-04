@@ -4,16 +4,13 @@ module Day3 where
 
 import Control.Applicative (Alternative (some), (<|>))
 
--- import Control.Monad.Combinators.NonEmpty (some)
+import Control.Monad.Tardis
 import Data.Functor (($>))
-import Data.List (group, sortOn, tails)
 import Data.Semigroup
 import qualified Data.Text as T
 import Data.Void (Void)
-import Safe (headMay)
 import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepEndBy)
 import Text.Megaparsec.Char
-import Witherable (mapMaybe)
 
 data Answer = Answer Joltage deriving (Eq, Show)
 
@@ -49,27 +46,48 @@ instance Ord Digit where
 newtype Battery = Battery {battery :: Digit} deriving (Eq, Show, Ord) via Digit
 
 joltage :: Battery -> Battery -> Joltage
-joltage (Battery b1) (Battery b2) = Joltage $ read $ (show b1) ++ (show b2)
+joltage (Battery b1) (Battery b2) = Joltage (10 * (digit b1) + (digit b2))
 
 data PowerBank = PowerBank {batteries :: [Battery]} deriving (Eq, Show)
 
-combinations :: [a] -> [(a, a)]
-combinations = concatMap zipWithTail . tails
- where
-  zipWithTail [] = []
-  zipWithTail (a : as) = (,) <$> [a] <*> as
+type Past a = Maybe (a, a)
+type Future a = Maybe a
+type TimeMachine a b = Tardis (Future a) (Past a) b
 
-uniqueCombinations :: (Eq a) => [a] -> [(a, a)]
-uniqueCombinations = combinations . duplicateIfSingleton . mapMaybe headMay . group
- where
-  duplicateIfSingleton (a : []) = a : [a]
-  duplicateIfSingleton as = as
+runTimeMachine :: TimeMachine a (Past a) -> Past a
+runTimeMachine = flip evalTardis (Nothing, Nothing)
 
-highestJoltageBatteryPair :: PowerBank -> Maybe (Battery, Battery)
-highestJoltageBatteryPair = headMay . sortOn (negate . uncurry joltage) . uniqueCombinations . batteries
+timeMachine :: (Ord a) => a -> TimeMachine a ()
+timeMachine present = do
+  sendPresentToTheFuture present
+  future <- getFuture
+  past <- getPast
+  modifyThePast present future past
+
+sendPresentToTheFuture :: (Ord a) => a -> TimeMachine a ()
+sendPresentToTheFuture present = modifyBackwards (changeFuture present)
+ where
+  changeFuture :: (Ord a) => a -> Maybe a -> Maybe a
+  changeFuture current Nothing = Just current
+  changeFuture current (Just future) = Just (max current future)
+
+modifyThePast :: (Ord a) => a -> Maybe a -> Maybe (a, a) -> TimeMachine a ()
+modifyThePast present future past = modifyForwards (const history)
+ where
+  history = changeHistory present future past
+  changeHistory :: (Ord a) => a -> Maybe a -> Maybe (a, a) -> Maybe (a, a)
+  changeHistory _ Nothing previous = previous
+  changeHistory current (Just next) Nothing = Just (current, next)
+  changeHistory current (Just next) (Just previous) = Just (max (current, next) previous)
+
+timeTravel :: (Ord a) => [a] -> TimeMachine a (Past a)
+timeTravel = (>> getPast) . mapM_ timeMachine
+
+highestPair :: (Ord a) => [a] -> Maybe (a, a)
+highestPair = runTimeMachine . timeTravel
 
 highestJoltage :: PowerBank -> Joltage
-highestJoltage = foldMap (uncurry joltage) . highestJoltageBatteryPair
+highestJoltage = foldMap (uncurry joltage) . highestPair . batteries
 
 solvePart1 :: [PowerBank] -> Joltage
 solvePart1 = foldMap highestJoltage
