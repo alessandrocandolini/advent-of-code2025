@@ -40,19 +40,24 @@ powerBank4 = PowerBank batteries4
 powerBanks :: [PowerBank]
 powerBanks = [powerBank1, powerBank2, powerBank3, powerBank4]
 
+highestPair = highestSegment 2
+
 spec :: Spec
 spec = describe "Day 3" $ do
   it "parse input" $
     parse input `shouldBe` (Right powerBanks)
 
+  it "joltage" $ 
+    joltage [Battery One, Battery Two, Battery Three] `shouldBe` 123
+
   it "highest pair list of two elements" $
-    highestPair [1,2] `shouldBe` Just (1,2)
+    highestPair [1, 2] `shouldBe` Just [1, 2]
 
   it "highest pair list of three elements" $
-    highestPair [1,2,3] `shouldBe` Just (2,3)
+    highestPair [1, 2, 3] `shouldBe` Just [2, 3]
 
   it "highest pair of a larger list" $
-    highestPair [2,9,5,1,2,7,3,7] `shouldBe` Just (9,7)
+    highestPair [2, 9, 5, 1, 2, 7, 3, 7] `shouldBe` Just [9, 7]
 
   it "highest pair is empty for empty list" $
     highestPair ([] :: [Int]) `shouldBe` Nothing
@@ -61,29 +66,18 @@ spec = describe "Day 3" $ do
     highestPair [1] `shouldBe` Nothing
 
   it "highest joltage of powerbank 1" $
-    highestJoltage powerBank1 `shouldBe` 98
+    highestJoltage 2 powerBank1 `shouldBe` 98
 
   it "highest joltage of powerbank 2" $
-    highestJoltage powerBank2 `shouldBe` 89
+    highestJoltage 2 powerBank2 `shouldBe` 89
 
   it "highest joltage of powerbank 3" $
-    highestJoltage powerBank3 `shouldBe` 78
+    highestJoltage 2 powerBank3 `shouldBe` 78
 
   it "highest joltage of powerbank 4" $
-    highestJoltage powerBank4 `shouldBe` 92
+    highestJoltage 2 powerBank4 `shouldBe` 92
   it "solve part 1" $
     solvePart1 powerBanks `shouldBe` 357
 
-  it "highest joltage of powerbank 1" $
-    highestJoltage powerBank1 `shouldBe` 98
-
-  it "highest joltage of powerbank 2" $
-    highestJoltage powerBank2 `shouldBe` 89
-
-  it "highest joltage of powerbank 3" $
-    highestJoltage powerBank3 `shouldBe` 78
-
-  it "highest joltage of powerbank 4" $
-    highestJoltage powerBank4 `shouldBe` 92
-  it "solve part 1" $
-    solvePart1 powerBanks `shouldBe` 357
+  it "solve input " $
+    solve input `shouldBe` Right (Answer 357)

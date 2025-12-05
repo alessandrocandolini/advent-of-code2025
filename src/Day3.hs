@@ -45,17 +45,18 @@ instance Ord Digit where
 
 newtype Battery = Battery {battery :: Digit} deriving (Eq, Show, Ord) via Digit
 
-joltage :: Battery -> Battery -> Joltage
-joltage (Battery b1) (Battery b2) = Joltage (10 * (digit b1) + (digit b2))
+joltage :: [Battery] -> Joltage
+joltage bs = foldMap Joltage $ fmap (uncurry calculatePower) (zip [0 ..] bs)
+ where
+  l = (length bs) -1
+  calculatePower p b = (10 ^ (l -p)) * ((digit . battery) b)
+
 
 data PowerBank = PowerBank {batteries :: [Battery]} deriving (Eq, Show)
 
 type Past a = Maybe (a, a)
 type Future a = Maybe a
 type TimeMachine a b = Tardis (Future a) (Past a) b
-
-runTimeMachine :: TimeMachine a (Past a) -> Past a
-runTimeMachine = flip evalTardis (Nothing, Nothing)
 
 timeMachine :: (Ord a) => a -> TimeMachine a ()
 timeMachine present = do
@@ -83,14 +84,17 @@ modifyThePast present future past = modifyForwards (const history)
 timeTravel :: (Ord a) => [a] -> TimeMachine a (Past a)
 timeTravel = (>> getPast) . mapM_ timeMachine
 
-highestPair :: (Ord a) => [a] -> Maybe (a, a)
-highestPair = runTimeMachine . timeTravel
+highestSegment :: (Ord a) => Int -> [a] -> Maybe [a]
+highestSegment = const $ fmap (\p -> [fst p, snd p]) . runTimeMachine . timeTravel
+ where
+  runTimeMachine :: TimeMachine a (Past a) -> Past a
+  runTimeMachine = flip evalTardis (Nothing, Nothing)
 
-highestJoltage :: PowerBank -> Joltage
-highestJoltage = foldMap (uncurry joltage) . highestPair . batteries
+highestJoltage :: Int -> PowerBank -> Joltage
+highestJoltage k = foldMap joltage . (highestSegment k) . batteries
 
 solvePart1 :: [PowerBank] -> Joltage
-solvePart1 = foldMap highestJoltage
+solvePart1 = foldMap (highestJoltage 2)
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void
