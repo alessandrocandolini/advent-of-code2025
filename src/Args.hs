@@ -4,11 +4,16 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Options.Applicative
 
+data CommandWithGlobalOptions = CommandWithGlobalOptions Verbosity Command
+  deriving (Eq, Show)
+
 data Command
   = Run Args
   | Generate GenerateArgs
   | GetStats StatsArgs
   deriving (Eq, Show)
+
+data Verbosity = Verbose | Quiet deriving (Eq, Show)
 
 data Args = Args
   { day :: Int
@@ -38,6 +43,17 @@ dayInputParser = fromFileParser <|> fromStdInputParser
       ( long "with-input"
           <> help "Read input from standard input"
       )
+
+verbosityParser :: Parser Verbosity
+verbosityParser =
+  flag
+    Quiet
+    Verbose
+    ( long "verbose"
+        <> short 'v'
+        <> showDefault
+        <> help "Verbose output"
+    )
 
 newtype GenerateArgs = GenerateArgs Int deriving (Eq, Show)
 data StatsRender = ConsoleRender | JsonRender deriving (Eq, Show)
@@ -89,11 +105,14 @@ commandParser =
         <> command "stats" (info (GetStats <$> statsArgsParser) (progDesc "retrieve stats from the AOC website"))
     )
 
+commandWithGlobalOptionsParser :: Parser CommandWithGlobalOptions
+commandWithGlobalOptionsParser = CommandWithGlobalOptions <$> verbosityParser <*> commandParser
+
 withInfo :: Parser a -> String -> ParserInfo a
 withInfo p s = info (helper <*> p) (fullDesc <> progDesc s)
 
-parseArgs :: [String] -> ParserResult Command
+parseArgs :: [String] -> ParserResult CommandWithGlobalOptions
 parseArgs = execParserPure preferences parserInfo
  where
-  parserInfo = withInfo commandParser "Advent of code 2025 CLI"
+  parserInfo = withInfo commandWithGlobalOptionsParser "Advent of code 2025 CLI"
   preferences = prefs (disambiguate <> showHelpOnEmpty <> showHelpOnError)

@@ -54,6 +54,11 @@ aoc2025 solve -d 1 -f inputs/day1
 ```
 assuming `~/.local/bin` is in the `$PATH` variable.
 
+To get more insights into runtime performance, it's possible to extract information from the Haskell RTS:
+```
+aoc2025 -v solve -d 1 --with-input +RTS -s -N1 < <(pbpaste)
+```
+
 To run a version of **ghci** compatible with the resolver
 ```
 stack ghci

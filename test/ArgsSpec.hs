@@ -7,6 +7,8 @@ import Args
       DayInput(FromStdInput, FromFile),
       GenerateArgs(GenerateArgs),
       StatsArgs(StatsArgs),
+      Verbosity(..),
+      CommandWithGlobalOptions(..),
       StatsRender(JsonRender, ConsoleRender) )
 import Options.Applicative (ParserResult (Failure, Success))
 import Test.Hspec ( describe, it, shouldBe, Spec )
@@ -22,19 +24,19 @@ parseArgsMaybe = transform . parseArgs
 spec :: Spec
 spec = describe "Args parser" $ do
   it "is able to parse a valid command to solve the solution from file" $
-    parseArgsMaybe ["solve", "-d", "1", "-f", "file"] `shouldBe` Right (Run (Args 1 (FromFile "file")))
+    parseArgsMaybe ["solve", "-d", "1", "-f", "file"] `shouldBe` Right (CommandWithGlobalOptions Quiet (Run (Args 1 (FromFile "file"))))
 
   it "is able to parse a valid command to solve the solution from standard input" $
-    parseArgsMaybe ["solve", "-d", "1", "--with-input"] `shouldBe` Right (Run (Args 1 FromStdInput))
+    parseArgsMaybe ["solve", "-d", "1", "--with-input"] `shouldBe` Right (CommandWithGlobalOptions Quiet (Run (Args 1 FromStdInput)))
 
   it "is able to parse a valid command to generate the scaffolding for a new day" $
-    parseArgsMaybe ["generate", "-d", "1"] `shouldBe` Right (Generate (GenerateArgs 1))
+    parseArgsMaybe ["generate", "-d", "1"] `shouldBe` Right (CommandWithGlobalOptions Quiet (Generate (GenerateArgs 1)))
 
   it "is able to parse a valid command to retrieve stats (without export)" $
-    parseArgsMaybe ["stats", "-y", "2022"] `shouldBe` Right (GetStats (StatsArgs 2022 ConsoleRender))
+    parseArgsMaybe ["stats", "-y", "2022"] `shouldBe` Right (CommandWithGlobalOptions Quiet (GetStats (StatsArgs 2022 ConsoleRender)))
 
   it "is able to parse a valid command to retrieve stats (with export)" $
-    parseArgsMaybe ["stats", "-y", "2022", "--json"] `shouldBe` Right (GetStats (StatsArgs 2022 JsonRender))
+    parseArgsMaybe ["stats", "-y", "2022", "--json"] `shouldBe` Right (CommandWithGlobalOptions Quiet (GetStats (StatsArgs 2022 JsonRender)))
 
   it "is able to parse a valid command to retrieve stats (with export and without year)" $
-    parseArgsMaybe ["stats", "--json"] `shouldBe` Right (GetStats (StatsArgs 2025 JsonRender))
+    parseArgsMaybe ["stats", "--json"] `shouldBe` Right (CommandWithGlobalOptions Quiet (GetStats (StatsArgs 2025 JsonRender)))
