@@ -40,30 +40,28 @@ powerBank4 = PowerBank batteries4
 powerBanks :: [PowerBank]
 powerBanks = [powerBank1, powerBank2, powerBank3, powerBank4]
 
-highestPair = highestSegment 2
-
 spec :: Spec
 spec = describe "Day 3" $ do
   it "parse input" $
     parse input `shouldBe` (Right powerBanks)
 
-  it "joltage" $ 
+  it "joltage" $
     joltage [Battery One, Battery Two, Battery Three] `shouldBe` 123
 
   it "highest pair list of two elements" $
-    highestPair [1, 2] `shouldBe` Just [1, 2]
+    maximumSubsequence 2 [1, 2] `shouldBe` Just [1, 2]
 
   it "highest pair list of three elements" $
-    highestPair [1, 2, 3] `shouldBe` Just [2, 3]
+    maximumSubsequence 2 [1, 2, 3] `shouldBe` Just [2, 3]
 
   it "highest pair of a larger list" $
-    highestPair [2, 9, 5, 1, 2, 7, 3, 7] `shouldBe` Just [9, 7]
+    maximumSubsequence 2 [2, 9, 5, 1, 2, 7, 3, 7] `shouldBe` Just [9, 7]
 
   it "highest pair is empty for empty list" $
-    highestPair ([] :: [Int]) `shouldBe` Nothing
+    maximumSubsequence 2 ([] :: [Int]) `shouldBe` Nothing
 
   it "highest pair is empty for a list of one element" $
-    highestPair [1] `shouldBe` Nothing
+    maximumSubsequence 2 [1] `shouldBe` Nothing
 
   it "highest joltage of powerbank 1" $
     highestJoltage 2 powerBank1 `shouldBe` 98
@@ -76,8 +74,24 @@ spec = describe "Day 3" $ do
 
   it "highest joltage of powerbank 4" $
     highestJoltage 2 powerBank4 `shouldBe` 92
+
+  it "highest joltage 12 of powerbank 1" $
+    highestJoltage 12 powerBank1 `shouldBe` 987654321111
+
+  it "highest joltage 12 of powerbank 2" $
+    highestJoltage 12 powerBank2 `shouldBe` 811111111119
+
+  it "highest joltage 12 of powerbank 3" $
+    highestJoltage 12 powerBank3 `shouldBe` 434234234278
+
+  it "highest joltage 12 of powerbank 4" $
+    highestJoltage 12 powerBank4 `shouldBe` 888911112111
+
   it "solve part 1" $
     solvePart1 powerBanks `shouldBe` 357
 
+  it "solve part 2" $
+    solvePart2 powerBanks `shouldBe` 3121910778619
+
   it "solve input " $
-    solve input `shouldBe` Right (Answer 357)
+    solve input `shouldBe` Right (Answer 357 3121910778619)
