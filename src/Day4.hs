@@ -1,25 +1,76 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Day4 where
 
+import Args (Verbosity (..))
 import Control.Applicative (some, (<|>))
 import Control.Comonad.Store
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.Vector as V
 import Data.Void (Void)
+import NeatInterpolation (text)
 import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepEndBy)
 import Text.Megaparsec.Char
 
-data Solution = Solution
-  { solutionPart1 :: Int
-  , solutionPart2 :: Int
+-- helpers
+tshow :: (Show a) => a -> T.Text
+tshow = T.pack . show
+
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
+
+-- program
+program :: Verbosity -> T.Text -> IO ()
+program Quiet = T.putStrLn . either tshow renderSolution . fmap fromVerboseSolution . solve
+program Verbose = T.putStrLn . either tshow renderVerboseSolution . solve
+
+defaultThreshold :: Int
+defaultThreshold = 4
+
+solve :: T.Text -> Either ParsingError VerboseSolution
+solve = fmap (VerboseSolution <$> solvePart1 defaultThreshold <*> solvePart2 defaultThreshold) . parse
+
+data VerboseSolution = VerboseSolution
+  { verboseSolution1 :: (Int, Bounds, Grid Cell)
+  , verboseSolution2 :: (Int, Bounds, [(Int, Grid Cell)])
   }
-  deriving (Eq, Show)
 
-program :: T.Text -> IO ()
-program = print . solve
+data Solution = Solution {solution1 :: Int, solution2 :: Int} deriving (Eq, Show)
 
-solve :: T.Text -> Either ParsingError Solution
-solve = fmap (Solution <$> solvePart1 <*> solvePart1) . parse
+fromVerboseSolution :: VerboseSolution -> Solution
+fromVerboseSolution = Solution <$> (fst3 . verboseSolution1) <*> (fst3 . verboseSolution2) where
+
+renderSolution :: Solution -> T.Text
+renderSolution solution =
+  [text|
+            ***** PART 1 *****
+            solution: ${displayCount1}
+
+            ***** PART 2 *****
+            solution: ${displayCount2}
+            |]
+ where
+  displayCount1 = (tshow . solution1) solution
+  displayCount2 = (tshow . solution2) solution
+
+renderVerboseSolution :: VerboseSolution -> T.Text
+renderVerboseSolution verboseSolution =
+  [text|
+            ***** PART 1 *****
+            solution: ${displayCount1}
+            grid:
+            ${displayGrid1}
+
+            ***** PART 2 *****
+            solution: ${displayCount2}
+            |]
+ where
+  (count1, bounds1, grid1) = verboseSolution1 verboseSolution
+  displayCount1 = tshow count1
+  displayCount2 = (tshow . fst3 . verboseSolution2) verboseSolution
+  displayGrid1 = T.pack (renderAccessibleCells bounds1 grid1)
 
 data Cell = Accessible | Inaccessible deriving (Eq, Show)
 
@@ -98,20 +149,24 @@ renderGrid toChar bounds grid = unlines (fmap (fmap toChar) (toList bounds grid)
 renderAccessibleCells :: Bounds -> Grid Cell -> String
 renderAccessibleCells = renderGrid renderCell
 
-accessibilityGrid :: Int -> [[Maybe Cell]] -> (Bounds, Grid Cell)
-accessibilityGrid threshold cells =
+solvePart1 :: Int -> [[Maybe Cell]] -> (Int, Bounds, Grid Cell)
+solvePart1 threshold cells =
   let
     (bounds, grid) = fromListUnsafe cells
     result = gridOfAccessibleSites threshold grid
+    count = countAllAccessible bounds result
    in
-    (bounds, result)
+    (count, bounds, result)
 
-solvePart1 :: [[Maybe Cell]] -> Int
-solvePart1 cells =
+countAllAccessibleEachStep :: Bounds -> [Grid Cell] -> [(Int, Grid Cell)]
+countAllAccessibleEachStep bounds = fmap (\grid -> (countAllAccessible bounds grid, grid))
+
+solvePart2 :: Int -> [[Maybe Cell]] -> (Int, Bounds, [(Int, Grid Cell)])
+solvePart2 threshold cells =
   let
-    (bounds, grid) = accessibilityGrid 4 cells
+    (count, bounds, grid) = solvePart1 threshold cells
    in
-    countAllAccessible bounds grid
+    (count, bounds, [(count, grid)])
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void

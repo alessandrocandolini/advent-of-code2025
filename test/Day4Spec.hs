@@ -5,7 +5,6 @@ module Day4Spec where
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Day4
-import Day4 (accessibilityGrid)
 import NeatInterpolation (trimming)
 import Test.Hspec
 import Test.Hspec.QuickCheck
@@ -26,8 +25,8 @@ input =
 @.@.@@@.@.
 |]
 
-grid :: [[Maybe Cell]]
-grid =
+exampleGrid :: [[Maybe Cell]]
+exampleGrid =
   [ [Nothing, Nothing, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing]
   , [Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible]
   , [Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible]
@@ -40,8 +39,8 @@ grid =
   , [Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Nothing]
   ]
 
-renderedOutput :: T.Text
-renderedOutput =
+exampleOutput :: T.Text
+exampleOutput =
   [trimming|
 ..xx.xx@x.
 x@@.@.@.@@
@@ -182,29 +181,26 @@ expectedOutput =
 spec :: Spec
 spec = describe "Day 4" $ do
   it "can parse input" $
-    parse input `shouldBe` Right grid
+    parse input `shouldBe` Right exampleGrid
 
   it "calculate bounds" $
-    let expectedBounds = Bounds 10 10
-        (bs, _) = accessibilityGrid 4 grid
-     in bs `shouldBe` expectedBounds
+    let (_, bounds, _) = solvePart1 defaultThreshold exampleGrid
+     in bounds `shouldBe` (Bounds 10 10)
 
   it "calculate accessibility grid" $
-    let
-      (bs, g) = accessibilityGrid 4 grid
-      elements = toList bs g
-     in
-      elements `shouldBe` expectedOutput
+    let (_, bounds, grid) = solvePart1 defaultThreshold exampleGrid
+        elements = toList bounds grid
+     in elements `shouldBe` expectedOutput
 
   it "print accessibility grid" $
-    let
-      (bs, g) = accessibilityGrid 4 grid
-      rows = (T.strip . T.pack) (renderAccessibleCells bs g)
-     in
-      rows `shouldBe` renderedOutput
+    let (_, bounds, grid) = solvePart1 defaultThreshold exampleGrid
+        result = (T.strip . T.pack) (renderAccessibleCells bounds grid)
+     in result `shouldBe` exampleOutput
 
   it "can solve part 1" $
-    solvePart1 grid `shouldBe` 13
+    let (n, _, _) = solvePart1 defaultThreshold exampleGrid
+     in n `shouldBe` 13
 
   it "solve both parts from input" $
-    solve input `shouldBe` Right (Solution 13 13)
+    let solution = fmap fromVerboseSolution (solve input)
+     in solution `shouldBe` Right (Solution 13 13)
