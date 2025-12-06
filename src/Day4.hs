@@ -14,10 +14,7 @@ import Data.Void (Void)
 import NeatInterpolation (text)
 import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepEndBy)
 import Text.Megaparsec.Char
-
--- helpers
-tshow :: (Show a) => a -> T.Text
-tshow = T.pack . show
+import Utils (tshow)
 
 -- render solution
 program :: Verbosity -> T.Text -> IO ()
@@ -38,26 +35,20 @@ data VerboseSolution = VerboseSolution
 data Solution = Solution {solution1 :: Int, solution2 :: Int} deriving (Eq, Show)
 
 fromVerboseSolution :: VerboseSolution -> Solution
-fromVerboseSolution = Solution <$> (fst3 . verboseSolution1) <*> (fst3 . verboseSolution2)
- where
-  fst3 :: (a, b, c) -> a
-  fst3 (a, _, _) = a
+fromVerboseSolution (VerboseSolution (s1, _, _) (s2, _, _)) = Solution s1 s2
 
 renderSolution :: Solution -> T.Text
-renderSolution solution =
-  [text|
-            ***** PART 1 *****
-            solution: ${displayCount1}
-
-            ***** PART 2 *****
-            solution: ${displayCount2}
-            |]
+renderSolution (Solution s1 s2) =
+  [text| ***** Solutions *****
+         part 1: ${t1}
+         part 2: ${t2}
+         *********************|]
  where
-  displayCount1 = (tshow . solution1) solution
-  displayCount2 = (tshow . solution2) solution
+  t1 = tshow s1
+  t2 = tshow s2
 
 renderVerboseSolution :: VerboseSolution -> T.Text
-renderVerboseSolution (VerboseSolution (res1, bounds1, grid1) (res2, bounds2, grids2)) =
+renderVerboseSolution (VerboseSolution (s1, bounds1, grid1) (s2, bounds2, grids2)) =
   [text|
             ***** PART 1 *****
             grid:
@@ -67,13 +58,10 @@ renderVerboseSolution (VerboseSolution (res1, bounds1, grid1) (res2, bounds2, gr
             evolution:
             ${textGrid2}
 
-            ***** Summary of the solutions *****
-            solution part 1: ${textSolution1}
-            solution part 2: ${textSolution2}
+            ${summary}
+
             |]
  where
-  textSolution1 = tshow res1
-  textSolution2 = tshow res2
   textGrid1 = T.pack (renderAccessibleCells bounds1 grid1)
   textOneStep (c, g) =
     let
@@ -85,6 +73,7 @@ renderVerboseSolution (VerboseSolution (res1, bounds1, grid1) (res2, bounds2, gr
       ${textGrid}
       |]
   textGrid2 = T.unlines $ fmap textOneStep grids2
+  summary = renderSolution (Solution s1 s2)
 
 -- Resolution starts here
 
@@ -173,8 +162,8 @@ solvePart1 threshold cells =
    in
     (count, bounds, grid)
 
-pruneAccessible :: Grid Cell -> Grid Cell
-pruneAccessible = fmap f
+removeAccessible :: Grid Cell -> Grid Cell
+removeAccessible = fmap f
  where
   f Nothing = Nothing
   f (Just Accessible) = Nothing
@@ -185,7 +174,7 @@ step threshold bounds grid =
   let
     grid' = gridOfAccessibleSites threshold grid
     count = countAllAccessible bounds grid'
-    pruned = pruneAccessible grid'
+    pruned = removeAccessible grid'
 
     -- IMPORTANT!!! force to create a fresh grid to avoid a tower of unevaluated grids
     cells = toList bounds pruned
