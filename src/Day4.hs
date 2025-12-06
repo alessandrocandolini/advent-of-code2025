@@ -2,12 +2,12 @@ module Day4 where
 
 import Control.Applicative (some, (<|>))
 import Control.Comonad.Store
+import Data.Maybe (isJust, isNothing)
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.Void (Void)
 import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepEndBy)
 import Text.Megaparsec.Char
-import Witherable (mapMaybe)
 
 data Solution = Solution
   { solutionPart1 :: Int
@@ -21,14 +21,12 @@ program = print . solve
 solve :: T.Text -> Either ParsingError Solution
 solve = fmap (Solution <$> solvePart1 <*> solvePart1) . parse
 
-data Cell = RollsOfPaper deriving (Eq)
-instance Show Cell where
-  show RollsOfPaper = "@"
+data Cell = Accessible | Inaccessible deriving (Eq, Show)
 
-data Accessibility = Accessible | Inaccessible deriving (Eq)
-instance Show Accessibility where
-  show Accessible = "x"
-  show Inaccessible = "@"
+renderCell :: Maybe Cell -> Char
+renderCell (Just Accessible) = 'x'
+renderCell (Just Inaccessible) = '@'
+renderCell Nothing = '.'
 
 type Coord = (Int, Int)
 type Grid a = Store Coord (Maybe a)
@@ -36,12 +34,10 @@ type Grid a = Store Coord (Maybe a)
 data Bounds = Bounds {height :: Int, width :: Int} deriving (Eq, Show)
 
 rowCoords :: Bounds -> Int -> [Coord]
-rowCoords b i =
-  [(i, j) | j <- [0 .. width b - 1]]
+rowCoords b i = [(i, j) | j <- [0 .. width b - 1]]
 
 allRows :: Bounds -> [[Coord]]
-allRows b =
-  [rowCoords b i | i <- [0 .. height b - 1]]
+allRows b = [rowCoords b i | i <- [0 .. height b - 1]]
 
 -- assume input nested list is "rectangular" and empty grid is modelled as [[]] ([] will crash the program)
 fromListUnsafe :: [[Maybe a]] -> (Bounds, Grid a)
@@ -54,12 +50,6 @@ fromListUnsafe rows = (bs, store access (0, 0))
   access (i, j)
     | 0 <= i && i < h, 0 <= j && j < w = underlying V.! (i * w + j)
     | otherwise = Nothing
-
-calculateCellAccessibility :: Int -> Grid a -> Maybe Accessibility
-calculateCellAccessibility threshold grid = fmap (const (checkNeighbourhood threshold grid)) (extract grid)
-
-calculateGridAccessibility :: Int -> Grid a -> Grid Accessibility
-calculateGridAccessibility n = extend (calculateCellAccessibility n)
 
 north, south, west, east, northEast, northWest, southEast, southWest :: Coord -> Coord
 north (i, j) = (i - 1, j)
@@ -80,32 +70,39 @@ applyMovements allMovements position = fmap ($ position) allMovements
 neighbourhood :: Grid a -> [Maybe a]
 neighbourhood = experiment (applyMovements movements)
 
-accessibility :: Int -> [Maybe a] -> Accessibility
-accessibility threshold = check . length . mapMaybe id
- where
-  check n
-    | n < threshold = Accessible
-    | otherwise = Inaccessible
+neighbourhoodCheck :: ([Maybe a] -> b) -> Grid a -> Maybe b
+neighbourhoodCheck check grid = fmap (const $ check $ neighbourhood grid) (extract grid)
 
-checkNeighbourhood :: Int -> Grid a -> Accessibility
-checkNeighbourhood threshold = accessibility threshold . neighbourhood
+isSiteAccessibleFromNeighbourhood :: Int -> Grid a -> Maybe Cell
+isSiteAccessibleFromNeighbourhood threshold = neighbourhoodCheck (isAccessible threshold)
+
+gridOfAccessibleSites :: Int -> Grid a -> Grid Cell
+gridOfAccessibleSites threshold = extend (isSiteAccessibleFromNeighbourhood threshold)
+
+isAccessible :: Int -> [Maybe a] -> Cell
+isAccessible threshold = enoughFreeSpace . length . filter isJust
+ where
+  enoughFreeSpace numberOfOccupiedCells
+    | numberOfOccupiedCells < threshold = Accessible
+    | otherwise = Inaccessible
 
 toList :: Bounds -> Grid a -> [[Maybe a]]
 toList b g = fmap (\row -> experiment (const row) g) (allRows b)
 
-isAccessible :: Maybe Accessibility -> Bool
-isAccessible (Just Accessible) = True
-isAccessible (Just Inaccessible) = False
-isAccessible Nothing = False
+countAllAccessible :: Bounds -> Grid Cell -> Int
+countAllAccessible b = length . filter (== Just Accessible) . concat . toList b
 
-countAccessibleSites :: Bounds -> Grid Accessibility -> Int
-countAccessibleSites bounds = length . filter isAccessible . concat . toList bounds
+renderGrid :: (Maybe a -> Char) -> Bounds -> Grid a -> String
+renderGrid toChar bounds grid = unlines (fmap (fmap toChar) (toList bounds grid))
 
-accessibilityGrid :: Int -> [[Maybe Cell]] -> (Bounds, Grid Accessibility)
+renderAccessibleCells :: Bounds -> Grid Cell -> String
+renderAccessibleCells = renderGrid renderCell
+
+accessibilityGrid :: Int -> [[Maybe Cell]] -> (Bounds, Grid Cell)
 accessibilityGrid threshold cells =
   let
     (bounds, grid) = fromListUnsafe cells
-    result = calculateGridAccessibility threshold grid
+    result = gridOfAccessibleSites threshold grid
    in
     (bounds, result)
 
@@ -114,14 +111,14 @@ solvePart1 cells =
   let
     (bounds, grid) = accessibilityGrid 4 cells
    in
-    countAccessibleSites bounds grid
+    countAllAccessible bounds grid
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void
 
 cellParser :: Parser (Maybe Cell)
 cellParser =
-  char '@' $> Just RollsOfPaper
+  char '@' $> Just Inaccessible
     <|> char '.' $> Nothing
 
 rowParser :: Parser [Maybe Cell]
