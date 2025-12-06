@@ -12,13 +12,17 @@ import Data.Void (Void)
 import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepEndBy)
 import Text.Megaparsec.Char
 
-data Answer = Answer Joltage deriving (Eq, Show)
+data Answer = Answer
+  { answerPart1 :: Joltage
+  , answerPart2 :: Joltage
+  }
+  deriving (Eq, Show)
 
 program :: T.Text -> IO ()
 program = print . solve
 
 solve :: T.Text -> Either ParsingError Answer
-solve = fmap (Answer . solvePart1) . parse
+solve = fmap (Answer <$> solvePart1 <*> solvePart2) . parse
 
 newtype Joltage = Joltage Int
   deriving (Eq, Show, Ord, Enum, Bounded, Num) via (Int)
@@ -48,53 +52,71 @@ newtype Battery = Battery {battery :: Digit} deriving (Eq, Show, Ord) via Digit
 joltage :: [Battery] -> Joltage
 joltage bs = foldMap Joltage $ fmap (uncurry calculatePower) (zip [0 ..] bs)
  where
-  l = (length bs) -1
-  calculatePower p b = (10 ^ (l -p)) * ((digit . battery) b)
-
+  l = (length bs) - 1
+  calculatePower p b = (10 ^ (l - p)) * ((digit . battery) b)
 
 data PowerBank = PowerBank {batteries :: [Battery]} deriving (Eq, Show)
 
-type Past a = Maybe (a, a)
-type Future a = Maybe a
+type Past a = Maybe [a]
+type Future a = [Maybe [a]]
 type TimeMachine a b = Tardis (Future a) (Past a) b
 
-timeMachine :: (Ord a) => a -> TimeMachine a ()
-timeMachine present = do
-  sendPresentToTheFuture present
+timeMachine :: (Ord a) => Int -> a -> TimeMachine a ()
+timeMachine k present = do
+  sendPresentToTheFuture k present
   future <- getFuture
   past <- getPast
-  modifyThePast present future past
+  modifyThePast k past present future
 
-sendPresentToTheFuture :: (Ord a) => a -> TimeMachine a ()
-sendPresentToTheFuture present = modifyBackwards (changeFuture present)
+sendPresentToTheFuture :: (Ord a) => Int -> a -> TimeMachine a ()
+sendPresentToTheFuture k present = modifyBackwards (changeFuture present)
  where
-  changeFuture :: (Ord a) => a -> Maybe a -> Maybe a
-  changeFuture current Nothing = Just current
-  changeFuture current (Just future) = Just (max current future)
+  changeFuture :: (Ord a) => a -> Future a -> Future a
+  changeFuture a future = [dpAt l | l <- [0 .. k - 1]]
+   where
+    dpAt 0 = Just []
+    dpAt l =
+      let keep = future !! l
+          prev = future !! (l - 1)
+          cand = (a :) <$> prev
+       in betterCandidate keep cand
 
-modifyThePast :: (Ord a) => a -> Maybe a -> Maybe (a, a) -> TimeMachine a ()
-modifyThePast present future past = modifyForwards (const history)
+betterCandidate :: (Ord a) => Maybe [a] -> Maybe [a] -> Maybe [a]
+betterCandidate Nothing y = y
+betterCandidate x Nothing = x
+betterCandidate (Just xs) (Just ys) = Just (max xs ys)
+
+modifyThePast :: (Ord a) => Int -> Past a -> a -> Future a -> TimeMachine a ()
+modifyThePast k past present future = modifyForwards (const history)
  where
-  history = changeHistory present future past
-  changeHistory :: (Ord a) => a -> Maybe a -> Maybe (a, a) -> Maybe (a, a)
-  changeHistory _ Nothing previous = previous
-  changeHistory current (Just next) Nothing = Just (current, next)
-  changeHistory current (Just next) (Just previous) = Just (max (current, next) previous)
+  segment = future !! (k - 1)
+  withReplacedPresent = (present :) <$> segment
+  history = betterCandidate past withReplacedPresent
 
-timeTravel :: (Ord a) => [a] -> TimeMachine a (Past a)
-timeTravel = (>> getPast) . mapM_ timeMachine
+timeTravel :: (Ord a) => Int -> [a] -> TimeMachine a (Past a)
+timeTravel k = (>> getPast) . mapM_ (timeMachine k)
 
-highestSegment :: (Ord a) => Int -> [a] -> Maybe [a]
-highestSegment = const $ fmap (\p -> [fst p, snd p]) . runTimeMachine . timeTravel
+maximumSubsequence :: (Ord a) => Int -> [a] -> Maybe [a]
+maximumSubsequence = withLengthChecks $ \k -> runTimeMachine k . timeTravel k
  where
-  runTimeMachine :: TimeMachine a (Past a) -> Past a
-  runTimeMachine = flip evalTardis (Nothing, Nothing)
+  initialFuture :: Int -> Future a
+  initialFuture k = Just [] : replicate (k - 1) Nothing
+  runTimeMachine :: Int -> TimeMachine a (Past a) -> Past a
+  runTimeMachine k = flip evalTardis (initialFuture k, Nothing)
+
+withLengthChecks :: (Int -> [a] -> Maybe [a]) -> Int -> [a] -> Maybe [a]
+withLengthChecks f k as
+  | k <= 0 = Just []
+  | otherwise = f k as
 
 highestJoltage :: Int -> PowerBank -> Joltage
-highestJoltage k = foldMap joltage . (highestSegment k) . batteries
+highestJoltage k = foldMap joltage . (maximumSubsequence k) . batteries
 
 solvePart1 :: [PowerBank] -> Joltage
 solvePart1 = foldMap (highestJoltage 2)
+
+solvePart2 :: [PowerBank] -> Joltage
+solvePart2 = foldMap (highestJoltage 12)
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void
