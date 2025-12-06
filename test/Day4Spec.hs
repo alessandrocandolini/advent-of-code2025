@@ -203,4 +203,4 @@ spec = describe "Day 4" $ do
 
   it "solve both parts from input" $
     let solution = fmap fromVerboseSolution (solve input)
-     in solution `shouldBe` Right (Solution 13 13)
+     in solution `shouldBe` Right (Solution 13 43)
