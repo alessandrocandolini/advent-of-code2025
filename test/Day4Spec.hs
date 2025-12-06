@@ -28,16 +28,16 @@ input =
 
 grid :: [[Maybe Cell]]
 grid =
-  [ [Nothing, Nothing, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing]
-  , [Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper]
-  , [Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper]
-  , [Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Nothing, Just RollsOfPaper, Nothing]
-  , [Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper]
-  , [Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper]
-  , [Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper]
-  , [Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper]
-  , [Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing]
-  , [Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing, Just RollsOfPaper, Just RollsOfPaper, Just RollsOfPaper, Nothing, Just RollsOfPaper, Nothing]
+  [ [Nothing, Nothing, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing]
+  , [Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible]
+  , [Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible]
+  , [Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Nothing, Just Inaccessible, Nothing]
+  , [Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible]
+  , [Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible]
+  , [Nothing, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible]
+  , [Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible]
+  , [Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing]
+  , [Just Inaccessible, Nothing, Just Inaccessible, Nothing, Just Inaccessible, Just Inaccessible, Just Inaccessible, Nothing, Just Inaccessible, Nothing]
   ]
 
 renderedOutput :: T.Text
@@ -55,7 +55,7 @@ x.@@@.@@@@
 x.x.@@@.x.
 |]
 
-expectedOutput :: [[Maybe Accessibility]]
+expectedOutput :: [[Maybe Cell]]
 expectedOutput =
   [
     [ Nothing
@@ -179,11 +179,6 @@ expectedOutput =
     ]
   ]
 
-displayAccessibility :: Maybe Accessibility -> Char
-displayAccessibility (Just Accessible) = 'x'
-displayAccessibility (Just Inaccessible) = '@'
-displayAccessibility Nothing = '.'
-
 spec :: Spec
 spec = describe "Day 4" $ do
   it "can parse input" $
@@ -204,9 +199,9 @@ spec = describe "Day 4" $ do
   it "print accessibility grid" $
     let
       (bs, g) = accessibilityGrid 4 grid
-      rows = unlines (fmap (fmap displayAccessibility) (toList bs g))
+      rows = (T.strip . T.pack) (renderAccessibleCells bs g)
      in
-      T.strip (T.pack rows) `shouldBe` renderedOutput
+      rows `shouldBe` renderedOutput
 
   it "can solve part 1" $
     solvePart1 grid `shouldBe` 13
