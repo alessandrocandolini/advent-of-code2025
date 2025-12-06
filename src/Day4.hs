@@ -5,6 +5,7 @@ module Day4 where
 import Args (Verbosity (..))
 import Control.Applicative (some, (<|>))
 import Control.Comonad.Store
+import Data.List (unfoldr)
 import Data.Maybe (isJust)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -18,10 +19,7 @@ import Text.Megaparsec.Char
 tshow :: (Show a) => a -> T.Text
 tshow = T.pack . show
 
-fst3 :: (a, b, c) -> a
-fst3 (a, _, _) = a
-
--- program
+-- render solution
 program :: Verbosity -> T.Text -> IO ()
 program Quiet = T.putStrLn . either tshow renderSolution . fmap fromVerboseSolution . solve
 program Verbose = T.putStrLn . either tshow renderVerboseSolution . solve
@@ -40,7 +38,10 @@ data VerboseSolution = VerboseSolution
 data Solution = Solution {solution1 :: Int, solution2 :: Int} deriving (Eq, Show)
 
 fromVerboseSolution :: VerboseSolution -> Solution
-fromVerboseSolution = Solution <$> (fst3 . verboseSolution1) <*> (fst3 . verboseSolution2) where
+fromVerboseSolution = Solution <$> (fst3 . verboseSolution1) <*> (fst3 . verboseSolution2)
+ where
+  fst3 :: (a, b, c) -> a
+  fst3 (a, _, _) = a
 
 renderSolution :: Solution -> T.Text
 renderSolution solution =
@@ -56,21 +57,36 @@ renderSolution solution =
   displayCount2 = (tshow . solution2) solution
 
 renderVerboseSolution :: VerboseSolution -> T.Text
-renderVerboseSolution verboseSolution =
+renderVerboseSolution (VerboseSolution (res1, bounds1, grid1) (res2, bounds2, grids2)) =
   [text|
             ***** PART 1 *****
-            solution: ${displayCount1}
             grid:
-            ${displayGrid1}
+            ${textGrid1}
 
             ***** PART 2 *****
-            solution: ${displayCount2}
+            evolution:
+            ${textGrid2}
+
+            ***** Summary of the solutions *****
+            solution part 1: ${textSolution1}
+            solution part 2: ${textSolution2}
             |]
  where
-  (count1, bounds1, grid1) = verboseSolution1 verboseSolution
-  displayCount1 = tshow count1
-  displayCount2 = (tshow . fst3 . verboseSolution2) verboseSolution
-  displayGrid1 = T.pack (renderAccessibleCells bounds1 grid1)
+  textSolution1 = tshow res1
+  textSolution2 = tshow res2
+  textGrid1 = T.pack (renderAccessibleCells bounds1 grid1)
+  textOneStep (c, g) =
+    let
+      textCount = tshow c
+      textGrid = T.pack (renderAccessibleCells bounds2 g)
+     in
+      [text|
+      Remove ${textCount} rolls of paper:
+      ${textGrid}
+      |]
+  textGrid2 = T.unlines $ fmap textOneStep grids2
+
+-- Resolution starts here
 
 data Cell = Accessible | Inaccessible deriving (Eq, Show)
 
@@ -138,7 +154,7 @@ isAccessible threshold = enoughFreeSpace . length . filter isJust
     | otherwise = Inaccessible
 
 toList :: Bounds -> Grid a -> [[Maybe a]]
-toList b g = fmap (\row -> experiment (const row) g) (allRows b)
+toList bounds grid = fmap (\row -> experiment (const row) grid) (allRows bounds)
 
 countAllAccessible :: Bounds -> Grid Cell -> Int
 countAllAccessible b = length . filter (== Just Accessible) . concat . toList b
@@ -152,21 +168,50 @@ renderAccessibleCells = renderGrid renderCell
 solvePart1 :: Int -> [[Maybe Cell]] -> (Int, Bounds, Grid Cell)
 solvePart1 threshold cells =
   let
-    (bounds, grid) = fromListUnsafe cells
-    result = gridOfAccessibleSites threshold grid
-    count = countAllAccessible bounds result
+    (bounds, initialGrid) = fromListUnsafe cells
+    (count, grid, _) = step threshold bounds initialGrid
    in
-    (count, bounds, result)
+    (count, bounds, grid)
 
-countAllAccessibleEachStep :: Bounds -> [Grid Cell] -> [(Int, Grid Cell)]
-countAllAccessibleEachStep bounds = fmap (\grid -> (countAllAccessible bounds grid, grid))
+pruneAccessible :: Grid Cell -> Grid Cell
+pruneAccessible = fmap f
+ where
+  f Nothing = Nothing
+  f (Just Accessible) = Nothing
+  f (Just Inaccessible) = Just Inaccessible
+
+step :: Int -> Bounds -> Grid Cell -> (Int, Grid Cell, Grid Cell)
+step threshold bounds grid =
+  let
+    grid' = gridOfAccessibleSites threshold grid
+    count = countAllAccessible bounds grid'
+    pruned = pruneAccessible grid'
+
+    -- IMPORTANT!!! force to create a fresh grid to avoid a tower of unevaluated grids
+    cells = toList bounds pruned
+    (_, gridFresh) = fromListUnsafe cells
+   in
+    (count, grid', gridFresh)
+
+thermalisation :: Int -> Bounds -> Grid Cell -> [(Int, Grid Cell)]
+thermalisation threshold bounds initialGrid = unfoldr evolve initialGrid
+ where
+  evolve :: Grid Cell -> Maybe ((Int, Grid Cell), Grid Cell)
+  evolve previousGrid =
+    let
+      (count, gridWithAccessibleCells, newGrid) = step threshold bounds previousGrid
+     in
+      if count == 0 then Nothing else Just ((count, gridWithAccessibleCells), newGrid)
 
 solvePart2 :: Int -> [[Maybe Cell]] -> (Int, Bounds, [(Int, Grid Cell)])
 solvePart2 threshold cells =
   let
-    (count, bounds, grid) = solvePart1 threshold cells
+    (bounds, initialGrid) = fromListUnsafe cells
+    evolution :: [(Int, Grid Cell)]
+    evolution = thermalisation threshold bounds initialGrid
+    count = sum $ fmap fst evolution
    in
-    (count, bounds, [(count, grid)])
+    (count, bounds, evolution)
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void
@@ -175,6 +220,7 @@ cellParser :: Parser (Maybe Cell)
 cellParser =
   char '@' $> Just Inaccessible
     <|> char '.' $> Nothing
+    <|> char 'x' $> Nothing
 
 rowParser :: Parser [Maybe Cell]
 rowParser = some cellParser
