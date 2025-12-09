@@ -6,9 +6,9 @@ import Data.List (transpose)
 import Data.Semigroup (Product (..), Sum (..))
 import qualified Data.Text as T
 import Data.Void (Void)
-import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepBy1, sepEndBy1)
+import Text.Megaparsec (ParseErrorBundle, Parsec, runParser, sepEndBy1)
 import Text.Megaparsec.Char
-import Text.Megaparsec.Char.Lexer (decimal)
+import Data.List.Split (splitOn, splitWhen)
 
 data Solution = Solution Integer Integer deriving (Eq, Show)
 
@@ -20,10 +20,19 @@ solve = fmap (Solution <$> solvePart1 <*> solvePart2) . parse
 
 data Operation = Addition | Multiplication deriving (Eq, Show)
 
-data Input = Input [[Integer]] [Operation] deriving (Eq, Show)
+data Input = Input [String] [Operation] deriving (Eq, Show)
 
-zipWithOperation :: Input -> [(Operation, [Integer])]
-zipWithOperation (Input rows operations) = zip operations (transpose rows)
+buildNumbers1 :: [String] -> [[Integer]]
+buildNumbers1 =  transpose . fmap unsafeParseNumbers
+
+buildNumbers2 :: [String] -> [[Integer]]
+buildNumbers2 = fmap concat . splitWhen null . fmap unsafeParseNumbers . transpose
+
+unsafeParseNumbers :: String -> [Integer]
+unsafeParseNumbers = fmap read . filter (not . null) . splitOn " "
+
+zipWithOperation :: [[Integer]] -> [Operation] -> [(Operation, [Integer])]
+zipWithOperation numbers operations = zip operations numbers
 
 applyOperation :: Operation -> [Integer] -> Integer
 applyOperation Addition = getSum . foldMap Sum
@@ -33,10 +42,13 @@ applyOperations :: [(Operation, [Integer])] -> [Integer]
 applyOperations = fmap (uncurry applyOperation)
 
 solvePart1 :: Input -> Integer
-solvePart1 = sum . applyOperations . zipWithOperation
+solvePart1 (Input rows operations) = (solveCommond operations . buildNumbers1) rows
 
 solvePart2 :: Input -> Integer
-solvePart2 = solvePart1
+solvePart2 (Input rows operations) = (solveCommond operations . buildNumbers2) rows
+
+solveCommond :: [Operation] -> [[Integer]] -> Integer
+solveCommond operations = sum . applyOperations . flip zipWithOperation operations
 
 type Parser = Parsec Void T.Text
 type ParsingError = ParseErrorBundle T.Text Void
@@ -49,10 +61,10 @@ operationParser =
 operationsParser :: Parser [Operation]
 operationsParser = sepEndBy1 operationParser hspace1
 
-rowParser :: Parser [Integer]
-rowParser = hspace *> (sepBy1 decimal hspace1) <* newline
+rowParser :: Parser String
+rowParser = some (digitChar <|> char ' ') <* newline
 
-rowsParser :: Parser [[Integer]]
+rowsParser :: Parser [String]
 rowsParser = some rowParser
 
 parser :: Parser Input
