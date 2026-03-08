@@ -42,6 +42,7 @@ ghc-options:
   - -Wall
   - -Wincomplete-record-updates
   - -Wincomplete-uni-patterns
+  - -Werror=incomplete-patterns
   - -Wredundant-constraints
   - -Wunused-packages
   - -O2
