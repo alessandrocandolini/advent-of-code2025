@@ -1,30 +1,29 @@
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE MultilineStrings #-}
 
 module Day5Spec where
 
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Day5
-import NeatInterpolation (trimming)
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck
 
 input :: T.Text
 input =
-  [trimming|
-3-5
-10-14
-16-20
-12-18
+  """
+  3-5
+  10-14
+  16-20
+  12-18
 
-1
-5
-8
-11
-17
-32
-|]
+  1
+  5
+  8
+  11
+  17
+  32
+  """
 
 ranges :: (Num a) => [Interval a]
 ranges =
