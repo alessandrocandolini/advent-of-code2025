@@ -1,0 +1,6 @@
+packages: .
+with-compiler: ghc-9.12.2
+
+-- The package description lives in advent-of-code2025.cabal.
+-- package.yaml remains the source of truth; regenerate the .cabal with hpack
+-- after dependency or component changes.
