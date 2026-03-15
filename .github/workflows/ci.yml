@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  STACK_VERSION: "3.7.1"
+  STACK_VERSION: "3.9.3"
 
 jobs:
   stack:
